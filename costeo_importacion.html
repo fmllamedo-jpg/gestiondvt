@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Costeo de Importación</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f5f4f0;
+    --surface: #ffffff;
+    --surface2: #f0efe9;
+    --border: rgba(0,0,0,0.12);
+    --border-strong: rgba(0,0,0,0.22);
+    --text: #1a1a18;
+    --text2: #6b6b65;
+    --text3: #9e9e98;
+    --blue: #185FA5;
+    --blue-bg: #E6F1FB;
+    --green: #3B6D11;
+    --green-bg: #EAF3DE;
+    --amber: #854F0B;
+    --amber-bg: #FAEEDA;
+    --red: #A32D2D;
+    --red-bg: #FCEBEB;
+    --teal: #0F6E56;
+    --teal-bg: #E1F5EE;
+    --radius: 8px;
+    --radius-lg: 12px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1a18; --surface: #242422; --surface2: #2c2c2a;
+      --border: rgba(255,255,255,0.1); --border-strong: rgba(255,255,255,0.2);
+      --text: #f0f0ec; --text2: #9e9e98; --text3: #6b6b65;
+      --blue: #85B7EB; --blue-bg: #042C53;
+      --green: #97C459; --green-bg: #173404;
+      --amber: #EF9F27; --amber-bg: #412402;
+      --red: #F09595; --red-bg: #501313;
+      --teal: #5DCAA5; --teal-bg: #04342C;
+    }
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  header { background: var(--surface); border-bottom: 0.5px solid var(--border); padding: 1rem 2rem; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+  header h1 { font-size: 16px; font-weight: 500; }
+  header p { font-size: 12px; color: var(--text2); }
+  .header-actions { display: flex; gap: 8px; }
+  .container { max-width: 1100px; margin: 0 auto; padding: 1.5rem 1rem; }
+  .card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1rem 1.25rem; margin-bottom: 1rem; }
+  .card-title { font-size: 12px; font-weight: 500; color: var(--text2); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1rem; }
+  .section-title { font-size: 15px; font-weight: 500; margin-bottom: 0.75rem; margin-top: 1.5rem; }
+  label.lbl { display: block; font-size: 12px; color: var(--text2); margin-bottom: 4px; }
+  input, select, textarea { border: 0.5px solid var(--border-strong); border-radius: var(--radius); padding: 7px 10px; font-size: 13px; background: var(--surface); color: var(--text); width: 100%; font-family: inherit; }
+  input:focus, select:focus { outline: 2px solid var(--blue); outline-offset: -1px; border-color: transparent; }
+  input.readonly { background: var(--surface2); color: var(--text2); font-weight: 500; }
+  input.resultado { background: var(--teal-bg); color: var(--teal); font-weight: 600; border-color: transparent; }
+  .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 10px; }
+  .btn { border: 0.5px solid var(--border-strong); border-radius: var(--radius); padding: 8px 16px; font-size: 13px; background: none; color: var(--text); cursor: pointer; font-family: inherit; transition: background 0.12s; }
+  .btn:hover { background: var(--surface2); }
+  .btn-primary { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .btn-primary:hover { opacity: 0.85; background: var(--text); }
+  .btn-sm { padding: 3px 8px; font-size: 11px; }
+  .btn-danger { color: var(--red); border-color: var(--red-bg); }
+  .btn-danger:hover { background: var(--red-bg); }
+  .btn-save { background: var(--teal); color: #fff; border-color: var(--teal); }
+  .btn-save:hover { opacity: 0.85; background: var(--teal); }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; }
+  .badge-blue { background: var(--blue-bg); color: var(--blue); }
+  .badge-green { background: var(--green-bg); color: var(--green); }
+  .badge-teal { background: var(--teal-bg); color: var(--teal); }
+  .separator { height: 0.5px; background: var(--border); margin: 1rem 0; }
+
+  /* Gastos generales */
+  .gastos-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 1rem; }
+  .gasto-item { display: flex; flex-direction: column; gap: 4px; }
+
+  /* Tabla de productos */
+  .productos-wrap { overflow-x: auto; }
+  table.productos { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 900px; }
+  table.productos th { background: var(--surface2); text-align: left; font-weight: 500; color: var(--text2); font-size: 11px; padding: 8px 10px; border-bottom: 0.5px solid var(--border); white-space: nowrap; }
+  table.productos td { padding: 8px 6px; border-bottom: 0.5px solid var(--border); vertical-align: middle; }
+  table.productos tr:last-child td { border-bottom: none; }
+  table.productos input { padding: 5px 7px; font-size: 12px; min-width: 70px; }
+  table.productos .col-resultado { background: var(--teal-bg); color: var(--teal); font-weight: 600; font-size: 12px; padding: 5px 7px; border-radius: var(--radius); white-space: nowrap; }
+  table.productos .col-sub { color: var(--text2); font-size: 11px; }
+  th.group-sep { border-left: 2px solid var(--border); }
+  td.group-sep { border-left: 2px solid var(--border); }
+
+  /* Resumen totales */
+  .resumen-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-top: 1rem; }
+  .metric { background: var(--surface2); border-radius: var(--radius); padding: 14px 16px; }
+  .metric-label { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+  .metric-val { font-size: 20px; font-weight: 500; }
+
+  .empty { color: var(--text3); font-size: 13px; text-align: center; padding: 2rem 0; }
+  .toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: var(--text); color: var(--bg); padding: 10px 16px; border-radius: var(--radius); font-size: 13px; opacity: 0; pointer-events: none; transition: opacity 0.2s; z-index: 100; }
+  .toast.show { opacity: 1; }
+  @media (max-width: 600px) { header { padding: 0.75rem 1rem; } .container { padding: 1rem 0.5rem; } }
+
+  .pct-badge { font-size: 10px; color: var(--text3); margin-left: 2px; }
+  .info-row { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text2); margin-bottom: 6px; }
+  .divider-label { font-size: 11px; font-weight: 500; color: var(--text2); text-transform: uppercase; letter-spacing: 0.05em; background: var(--surface2); padding: 4px 10px; border-radius: 4px; white-space: nowrap; }
+
+  /* Historial */
+  .historial-list { display: flex; flex-direction: column; gap: 8px; }
+  .historial-item { border: 0.5px solid var(--border); border-radius: var(--radius); padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: background 0.12s; }
+  .historial-item:hover { background: var(--surface2); }
+  .historial-item-info { flex: 1; }
+  .historial-item-ref { font-size: 14px; font-weight: 500; }
+  .historial-item-meta { font-size: 12px; color: var(--text2); margin-top: 2px; }
+  .historial-item-cost { text-align: right; }
+  .historial-item-cost-val { font-size: 16px; font-weight: 500; color: var(--teal); }
+  .historial-item-cost-label { font-size: 11px; color: var(--text3); }
+  .historial-item-actions { display: flex; gap: 6px; margin-left: 16px; }
+  .historial-empty { color: var(--text3); font-size: 13px; text-align: center; padding: 2rem 0; }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Costeo de importación</h1>
+    <p id="last-saved" style="color:var(--text3)">Listo.</p>
+  </div>
+  <div class="header-actions">
+    <button class="btn" onclick="descargarPlantilla()">⬇ Plantilla Excel</button>
+    <label class="btn" style="cursor:pointer" title="Cargar productos desde Excel">
+      ↑ Cargar Excel
+      <input type="file" id="input-excel" accept=".xlsx,.xls" style="display:none" onchange="cargarExcel(event)">
+    </label>
+    <button class="btn" onclick="exportarJSON()">⬇ Exportar JSON</button>
+    <button class="btn" onclick="descargarCosteo()">📊 Descargar Costeo</button>
+    <button class="btn btn-save" onclick="guardarEnFirebase()">💾 Guardar costeo</button>
+    <button class="btn btn-primary" onclick="recalcular()">↻ Recalcular todo</button>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- INFO GENERAL -->
+  <div class="card">
+    <div class="card-title">Datos de la importación</div>
+    <div class="form-row">
+      <div><label class="lbl">Referencia / PO</label><input type="text" id="imp-ref" placeholder="Ej: SARAI-2026-01" oninput="guardar()"></div>
+      <div><label class="lbl">Proveedor</label><input type="text" id="imp-prov" placeholder="Ej: Lykeen Tires Co." oninput="guardar()"></div>
+      <div><label class="lbl">Origen</label>
+        <select id="imp-origen" onchange="guardar()">
+          <option>China</option><option>India</option><option>Dubai</option><option>Otro</option>
+        </select>
+      </div>
+      <div><label class="lbl">Fecha</label><input type="date" id="imp-fecha" oninput="guardar()"></div>
+      <div><label class="lbl">Tipo de cambio (ARS/USD)</label><input type="number" id="imp-tc" placeholder="0" min="0" oninput="guardar(); recalcular()"></div>
+    </div>
+  </div>
+
+<!-- RESUMEN -->
+  <div class="card" id="resumen-card">
+    <div class="card-title">Resumen de la importación</div>
+    <div class="resumen-grid">
+      <div class="metric"><div class="metric-label">FOB Total</div><div class="metric-val" id="res-fob" style="color:var(--blue)">USD 0</div></div>
+      <div class="metric"><div class="metric-label">CIF Total</div><div class="metric-val" id="res-cif" style="color:var(--blue)">USD 0</div></div>
+      <div class="metric"><div class="metric-label">Derechos de importación</div><div class="metric-val" id="res-der" style="color:var(--amber)">USD 0</div></div>
+      <div class="metric"><div class="metric-label">Tasa estadística</div><div class="metric-val" id="res-estad" style="color:var(--amber)">USD 0</div></div>
+      <div class="metric"><div class="metric-label">IVA total (sobre CIF)</div><div class="metric-val" id="res-iva" style="color:var(--amber)">USD 0</div></div>
+      <div class="metric">
+        <div class="metric-label">Anticipo IIBB</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+          <input type="number" id="pct-iibb" value="3" min="0" step="0.1" oninput="recalcular()"
+            style="width:54px;padding:3px 6px;font-size:13px;border:0.5px solid var(--border-strong);border-radius:var(--radius);background:var(--surface);color:var(--text)">
+          <span style="font-size:12px;color:var(--text2)">% sobre CIF</span>
+        </div>
+        <div class="metric-val" id="res-iibb" style="color:var(--amber)">USD 0</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Anticipo Ganancias</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+          <input type="number" id="pct-ganancias" value="6" min="0" step="0.1" oninput="recalcular()"
+            style="width:54px;padding:3px 6px;font-size:13px;border:0.5px solid var(--border-strong);border-radius:var(--radius);background:var(--surface);color:var(--text)">
+          <span style="font-size:12px;color:var(--text2)">% sobre CIF</span>
+        </div>
+        <div class="metric-val" id="res-ganancias" style="color:var(--amber)">USD 0</div>
+      </div>
+      <div class="metric"><div class="metric-label">Gastos generales</div><div class="metric-val" id="res-gastos" style="color:var(--amber)">USD 0</div></div>
+      <div class="metric" style="border:1px solid var(--red);"><div class="metric-label">Monto total para nacionalizar</div><div class="metric-val" id="res-nacionalizar" style="color:var(--red)">USD 0</div></div>
+      <div class="metric"><div class="metric-label">Costo total importación</div><div class="metric-val" id="res-total" style="color:var(--teal)">USD 0</div></div>
+      <div class="metric"><div class="metric-label">Equivalente ARS</div><div class="metric-val" id="res-ars" style="color:var(--green)">ARS 0</div></div>
+    </div>
+  </div>
+
+  <!-- GASTOS GENERALES -->
+  <div class="card">
+    <div class="card-title">Gastos generales de la importación <span class="badge badge-blue">se prorratean por valor FOB</span></div>
+    <div class="gastos-grid">
+      <div class="gasto-item"><label class="lbl">Flete Internacional (USD)</label><input type="number" id="g-flete-int" placeholder="0" min="0" oninput="recalcular()"></div>
+      <div class="gasto-item"><label class="lbl">Flete declarado (USD)</label><input type="number" id="g-flete-decl" placeholder="0" min="0" oninput="recalcular()"></div>
+      <div class="gasto-item"><label class="lbl">Gastos en Origen (USD)</label><input type="number" id="g-origen" placeholder="0" min="0" oninput="recalcular()"></div>
+      <div class="gasto-item"><label class="lbl">Gastos en Destino (USD)</label><input type="number" id="g-destino" placeholder="0" min="0" oninput="recalcular()"></div>
+      <div class="gasto-item"><label class="lbl">Gastos Terminal Portuaria (USD)</label><input type="number" id="g-terminal" placeholder="0" min="0" oninput="recalcular()"></div>
+      <div class="gasto-item"><label class="lbl">Flete Interno (USD)</label><input type="number" id="g-flete-int2" placeholder="0" min="0" oninput="recalcular()"></div>
+      <div class="gasto-item"><label class="lbl">Certificaciones (USD)</label><input type="number" id="g-cert" placeholder="0" min="0" oninput="recalcular()"></div>
+      <div class="gasto-item"><label class="lbl">Inspecciones (USD)</label><input type="number" id="g-insp" placeholder="0" min="0" oninput="recalcular()"></div>
+      <div class="gasto-item"><label class="lbl">Honorarios Despachante (USD)</label><input type="number" id="g-desp" placeholder="0" min="0" oninput="recalcular()"></div>
+      <div class="gasto-item"><label class="lbl">Seguro (USD)</label><input type="number" id="g-seguro" placeholder="0" min="0" oninput="recalcular()"></div>
+      <div class="gasto-item"><label class="lbl">Otros (USD)</label><input type="number" id="g-otros" placeholder="0" min="0" oninput="recalcular()"></div>
+    </div>
+    <div style="display:flex; align-items:center; gap:12px; margin-top:4px;">
+      <span style="font-size:13px; color:var(--text2)">Total gastos generales:</span>
+      <span id="total-gastos-generales" style="font-size:16px; font-weight:500; color:var(--teal)">USD 0</span>
+    </div>
+  </div>
+
+  <!-- PRODUCTOS -->
+  <div class="card">
+    <div class="card-title">Productos</div>
+
+    <div class="productos-wrap">
+      <table class="productos" id="tabla-productos">
+        <thead>
+          <tr>
+            <th style="min-width:160px">Producto</th>
+            <th style="width:80px">Cant.</th>
+            <!-- FOB real -->
+            <th class="group-sep" style="width:90px">FOB real unit. (USD)</th>
+            <th style="width:90px">FOB real total (USD)</th>
+            <!-- CIF declarado -->
+            <th class="group-sep" style="width:90px">FOB declar. unit. (USD)</th>
+            <th style="width:80px">Flete declar. (USD)</th>
+            <th style="width:90px">CIF declar. (USD)</th>
+            <!-- Tributos -->
+            <th class="group-sep" style="width:70px">Der. Imp. (%)</th>
+            <th style="width:70px">T. Estad. (%)</th>
+            <th style="width:60px">IVA (%)</th>
+            <th style="width:100px">Tributos (USD)</th>
+            <!-- Prorrateo -->
+            <th class="group-sep" style="width:70px">% FOB real</th>
+            <th style="width:100px">Gastos prorrat.</th>
+            <!-- Costo final -->
+            <th class="group-sep" style="width:110px">Costo total (USD)</th>
+            <th style="width:115px">Costo unit. neto (USD)</th>
+            <th style="width:110px">Costo unit. c/IVA (USD)</th>
+            <th style="width:30px"></th>
+          </tr>
+        </thead>
+        <tbody id="productos-body">
+          <tr><td colspan="16" class="empty">Agregá productos abajo.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="separator"></div>
+
+    <!-- Formulario nuevo producto -->
+    <div style="margin-bottom:8px; font-size:12px; font-weight:500; color:var(--text2); text-transform:uppercase; letter-spacing:0.05em;">Agregar producto</div>
+    <div class="form-row">
+      <div><label class="lbl">Nombre del producto</label><input type="text" id="p-nombre" placeholder="Ej: Neumático 195/65R15"></div>
+      <div><label class="lbl">Cantidad</label><input type="number" id="p-cant" placeholder="0" min="0"></div>
+      <div><label class="lbl">FOB real unitario (USD)</label><input type="number" id="p-fob-real" placeholder="0" min="0"></div>
+      <div><label class="lbl">FOB declarado unitario (USD)</label><input type="number" id="p-fob-decl" placeholder="0" min="0"></div>
+    </div>
+    <div class="form-row">
+      <div><label class="lbl">Derechos de importación (%)</label><input type="number" id="p-der" placeholder="0" min="0" step="0.1"></div>
+      <div><label class="lbl">Tasa de estadística (%)</label><input type="number" id="p-estad" placeholder="0" min="0" step="0.1"></div>
+      <div><label class="lbl">IVA (%)</label><input type="number" id="p-iva" placeholder="21" min="0" step="0.1"></div>
+    </div>
+    <button class="btn btn-primary" onclick="agregarProducto()">+ Agregar producto</button>
+    <button class="btn btn-danger" onclick="vaciarProductos()" style="margin-left:8px">🗑 Vaciar todo</button>
+  </div>
+
+  <!-- HISTORIAL -->
+  <div class="card">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem;">
+      <div class="card-title" style="margin-bottom:0">Historial de costeos guardados</div>
+      <button class="btn btn-sm" onclick="cargarHistorial()">↻ Actualizar</button>
+    </div>
+    <div class="historial-list" id="historial-list">
+      <div class="historial-empty">Cargando historial...</div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Modal para ver costeo guardado -->
+<div id="modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:200; overflow-y:auto; padding:2rem 1rem;">
+  <div style="max-width:900px; margin:0 auto; background:var(--surface); border-radius:var(--radius-lg); padding:1.5rem;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+      <h2 style="font-size:16px; font-weight:500;" id="modal-titulo">Costeo</h2>
+      <div style="display:flex; gap:8px;">
+        <button class="btn btn-sm" onclick="descargarCosteoGuardado()">📊 Descargar Excel</button>
+        <button class="btn btn-sm btn-primary" onclick="cargarEnFormulario()">↑ Cargar en formulario</button>
+        <button class="btn btn-sm btn-danger" onclick="cerrarModal()">✕ Cerrar</button>
+      </div>
+    </div>
+    <div id="modal-contenido"></div>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, orderBy, query } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAlniq4IE9X4YqDYN50IAWVzk7h5MNJfxM",
+    authDomain: "sarai-31ceb.firebaseapp.com",
+    projectId: "sarai-31ceb",
+    storageBucket: "sarai-31ceb.firebasestorage.app",
+    messagingSenderId: "785851560342",
+    appId: "1:785851560342:web:3cad3eaf861a09acc66db7"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  let costeoEnModal = null;
+
+  window.guardarEnFirebase = async function() {
+    if (!productos.length) { toast('No hay productos para guardar.'); return; }
+    const ref = document.getElementById('imp-ref').value.trim();
+    if (!ref) { toast('Completá la Referencia / PO antes de guardar.'); return; }
+
+    const gastos = {};
+    gastosCampos.forEach(id => gastos[id] = parseFloat(document.getElementById(id).value) || 0);
+    const info = {};
+    infoCampos.forEach(id => info[id] = document.getElementById(id).value);
+
+    const gastosTotal = totalGastosGenerales();
+    const fobRealTotalGlobal = productos.reduce((a, p) => a + p.fobRealUnit * p.cant, 0);
+    const seguroTotal = parseFloat(document.getElementById('g-seguro').value) || 0;
+    const fleteDeclaradoTotal = parseFloat(document.getElementById('g-flete-decl').value) || 0;
+    const pctIIBB = parseFloat(document.getElementById('pct-iibb').value) || 0;
+    const pctGanancias = parseFloat(document.getElementById('pct-ganancias').value) || 0;
+
+    const totFob = productos.reduce((a, p) => a + p.fobRealUnit * p.cant, 0);
+    const calculados = productos.map(p => {
+      const fobRealTotal = p.fobRealUnit * p.cant;
+      const pctSeg = fobRealTotalGlobal > 0 ? fobRealTotal / fobRealTotalGlobal : 0;
+      const seguroProd = seguroTotal * pctSeg;
+      const fobDeclTotal = p.fobDeclUnit * p.cant;
+      const fleteDeclaradoProd = fleteDeclaradoTotal * pctSeg;
+      const cifDecl = fobDeclTotal + seguroProd + fleteDeclaradoProd;
+      const tribDer = cifDecl * p.der / 100;
+      const tribEstad = cifDecl * p.estad / 100;
+      const tribIva = cifDecl * p.iva / 100;
+      const pctFob = fobRealTotalGlobal > 0 ? fobRealTotal / fobRealTotalGlobal : 0;
+      const gastoProrrat = gastosTotal * pctFob;
+      const costoNeto = fobRealTotal + tribDer + tribEstad + gastoProrrat;
+      const costoTotal = costoNeto + tribIva;
+      return { ...p, fobRealTotal, cifDecl, tribDer, tribEstad, tribIva, tribTotal: tribDer+tribEstad+tribIva, pctFob, gastoProrrat, costoNeto, costoTotal, costoUnitNeto: p.cant>0?costoNeto/p.cant:0, costoUnitConIva: p.cant>0?costoTotal/p.cant:0 };
+    });
+
+    const totCif = calculados.reduce((a,p) => a+p.cifDecl, 0);
+    const totCosto = calculados.reduce((a,p) => a+p.costoTotal, 0);
+    const totNacionalizar = calculados.reduce((a,p) => a+p.tribDer+p.tribEstad+p.tribIva, 0) + totCif*(pctIIBB+pctGanancias)/100;
+
+    const doc_data = {
+      info,
+      gastos,
+      productos,
+      pctIIBB,
+      pctGanancias,
+      resumen: { totFob, totCif, totCosto, totNacionalizar },
+      guardadoEn: new Date().toISOString()
+    };
+
+    try {
+      document.getElementById('last-saved').textContent = 'Guardando...';
+      await addDoc(collection(db, 'costeos'), doc_data);
+      toast('Costeo guardado en historial ✓');
+      document.getElementById('last-saved').textContent = 'Guardado en Firebase: ' + new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+      cargarHistorial();
+    } catch(e) {
+      toast('Error al guardar: ' + e.message);
+      document.getElementById('last-saved').textContent = 'Error al guardar.';
+    }
+  };
+
+  window.cargarHistorial = async function() {
+    const list = document.getElementById('historial-list');
+    list.innerHTML = '<div class="historial-empty">Cargando...</div>';
+    try {
+      const q = query(collection(db, 'costeos'), orderBy('guardadoEn', 'desc'));
+      const snap = await getDocs(q);
+      if (snap.empty) {
+        list.innerHTML = '<div class="historial-empty">No hay costeos guardados todavía.</div>';
+        return;
+      }
+      list.innerHTML = '';
+      snap.forEach(d => {
+        const c = d.data();
+        const fecha = new Date(c.guardadoEn).toLocaleString('es-AR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+        const ref = c.info['imp-ref'] || '(sin referencia)';
+        const prov = c.info['imp-prov'] || '—';
+        const origen = c.info['imp-origen'] || '—';
+        const totCosto = c.resumen?.totCosto || 0;
+        const el = document.createElement('div');
+        el.className = 'historial-item';
+        el.innerHTML = `
+          <div class="historial-item-info">
+            <div class="historial-item-ref">${ref}</div>
+            <div class="historial-item-meta">${prov} · ${origen} · ${c.info['imp-fecha'] || '—'} · Guardado: ${fecha}</div>
+          </div>
+          <div class="historial-item-cost">
+            <div class="historial-item-cost-val">USD ${Number(totCosto).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+            <div class="historial-item-cost-label">Costo total importación</div>
+          </div>
+          <div class="historial-item-actions">
+            <button class="btn btn-sm" onclick="abrirModal('${d.id}')">Ver</button>
+            <button class="btn btn-sm btn-danger" onclick="eliminarCosteo('${d.id}', event)">✕</button>
+          </div>
+        `;
+        list.appendChild(el);
+      });
+      // Guardar datos para el modal
+      window._historialDocs = {};
+      snap.forEach(d => { window._historialDocs[d.id] = d.data(); });
+    } catch(e) {
+      list.innerHTML = '<div class="historial-empty">Error al cargar: ' + e.message + '</div>';
+    }
+  };
+
+  window.abrirModal = function(id) {
+    const c = window._historialDocs[id];
+    if (!c) return;
+    costeoEnModal = c;
+    const ref = c.info['imp-ref'] || '(sin referencia)';
+    document.getElementById('modal-titulo').textContent = 'Costeo: ' + ref;
+
+    const fmt = (n, d=2) => Number(n).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
+    const gastosNombres = {
+      'g-flete-int':'Flete Internacional','g-flete-decl':'Flete declarado','g-origen':'Gastos en Origen',
+      'g-destino':'Gastos en Destino','g-terminal':'Terminal Portuaria','g-flete-int2':'Flete Interno',
+      'g-cert':'Certificaciones','g-insp':'Inspecciones','g-desp':'Honorarios Despachante',
+      'g-seguro':'Seguro','g-otros':'Otros'
+    };
+
+    let html = `
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:1rem;">
+        <div><span style="font-size:11px;color:var(--text2)">Referencia</span><div style="font-weight:500">${c.info['imp-ref']||'—'}</div></div>
+        <div><span style="font-size:11px;color:var(--text2)">Proveedor</span><div style="font-weight:500">${c.info['imp-prov']||'—'}</div></div>
+        <div><span style="font-size:11px;color:var(--text2)">Origen</span><div style="font-weight:500">${c.info['imp-origen']||'—'}</div></div>
+        <div><span style="font-size:11px;color:var(--text2)">Fecha</span><div style="font-weight:500">${c.info['imp-fecha']||'—'}</div></div>
+        <div><span style="font-size:11px;color:var(--text2)">Tipo de cambio</span><div style="font-weight:500">${c.info['imp-tc']||'—'} ARS/USD</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin-bottom:1rem;">
+        <div style="background:var(--surface2);border-radius:var(--radius);padding:10px 14px;">
+          <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:2px">FOB Total</div>
+          <div style="font-size:18px;font-weight:500;color:var(--blue)">USD ${fmt(c.resumen?.totFob||0)}</div>
+        </div>
+        <div style="background:var(--surface2);border-radius:var(--radius);padding:10px 14px;">
+          <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:2px">CIF Total</div>
+          <div style="font-size:18px;font-weight:500;color:var(--blue)">USD ${fmt(c.resumen?.totCif||0)}</div>
+        </div>
+        <div style="background:var(--surface2);border-radius:var(--radius);padding:10px 14px;border:1px solid var(--red);">
+          <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:2px">Para nacionalizar</div>
+          <div style="font-size:18px;font-weight:500;color:var(--red)">USD ${fmt(c.resumen?.totNacionalizar||0)}</div>
+        </div>
+        <div style="background:var(--teal-bg);border-radius:var(--radius);padding:10px 14px;">
+          <div style="font-size:11px;color:var(--teal);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:2px">Costo total</div>
+          <div style="font-size:18px;font-weight:500;color:var(--teal)">USD ${fmt(c.resumen?.totCosto||0)}</div>
+        </div>
+      </div>
+      <div style="font-size:12px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px">Gastos generales</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:6px;margin-bottom:1rem;">
+        ${Object.entries(gastosNombres).map(([k,v]) => c.gastos[k] > 0 ? `<div style="font-size:12px"><span style="color:var(--text2)">${v}:</span> <strong>USD ${fmt(c.gastos[k])}</strong></div>` : '').join('')}
+      </div>
+      <div style="font-size:12px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px">Productos</div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+          <thead>
+            <tr style="background:var(--surface2)">
+              <th style="text-align:left;padding:6px 10px;font-weight:500;color:var(--text2)">Producto</th>
+              <th style="text-align:right;padding:6px 10px;font-weight:500;color:var(--text2)">Cant.</th>
+              <th style="text-align:right;padding:6px 10px;font-weight:500;color:var(--text2)">FOB real unit.</th>
+              <th style="text-align:right;padding:6px 10px;font-weight:500;color:var(--text2)">FOB decl. unit.</th>
+              <th style="text-align:right;padding:6px 10px;font-weight:500;color:var(--text2)">Der. (%)</th>
+              <th style="text-align:right;padding:6px 10px;font-weight:500;color:var(--text2)">Estad. (%)</th>
+              <th style="text-align:right;padding:6px 10px;font-weight:500;color:var(--text2)">IVA (%)</th>
+              <th style="text-align:right;padding:6px 10px;font-weight:500;color:var(--teal)">Costo unit. neto</th>
+              <th style="text-align:right;padding:6px 10px;font-weight:500;color:var(--teal)">Costo unit. c/IVA</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${(c.productos||[]).map(p => {
+              const fobRealTotalG = (c.productos||[]).reduce((a,x) => a+x.fobRealUnit*x.cant, 0);
+              const fobRealTotal = p.fobRealUnit * p.cant;
+              const pctSeg = fobRealTotalG > 0 ? fobRealTotal / fobRealTotalG : 0;
+              const seguro = (c.gastos['g-seguro']||0) * pctSeg;
+              const fobDeclTotal = p.fobDeclUnit * p.cant;
+              const fleteDecl = (c.gastos['g-flete-decl']||0) * pctSeg;
+              const cifDecl = fobDeclTotal + seguro + fleteDecl;
+              const tribDer = cifDecl * p.der / 100;
+              const tribEstad = cifDecl * p.estad / 100;
+              const tribIva = cifDecl * p.iva / 100;
+              const gastosT = Object.values(c.gastos||{}).reduce((a,v)=>a+v,0);
+              const pctFob = fobRealTotalG > 0 ? fobRealTotal / fobRealTotalG : 0;
+              const gastoProrrat = gastosT * pctFob;
+              const costoNeto = fobRealTotal + tribDer + tribEstad + gastoProrrat;
+              const costoTotal = costoNeto + tribIva;
+              const costoUnitNeto = p.cant > 0 ? costoNeto / p.cant : 0;
+              const costoUnitConIva = p.cant > 0 ? costoTotal / p.cant : 0;
+              return `<tr style="border-bottom:0.5px solid var(--border)">
+                <td style="padding:6px 10px;font-weight:500">${p.nombre}</td>
+                <td style="padding:6px 10px;text-align:right">${p.cant}</td>
+                <td style="padding:6px 10px;text-align:right">${fmt(p.fobRealUnit)}</td>
+                <td style="padding:6px 10px;text-align:right">${fmt(p.fobDeclUnit)}</td>
+                <td style="padding:6px 10px;text-align:right">${p.der}%</td>
+                <td style="padding:6px 10px;text-align:right">${p.estad}%</td>
+                <td style="padding:6px 10px;text-align:right">${p.iva}%</td>
+                <td style="padding:6px 10px;text-align:right;color:var(--teal);font-weight:600">${fmt(costoUnitNeto)}</td>
+                <td style="padding:6px 10px;text-align:right;color:var(--teal);font-weight:600">${fmt(costoUnitConIva)}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+    document.getElementById('modal-contenido').innerHTML = html;
+    document.getElementById('modal-overlay').style.display = 'block';
+  };
+
+  window.cerrarModal = function() {
+    document.getElementById('modal-overlay').style.display = 'none';
+    costeoEnModal = null;
+  };
+
+  window.cargarEnFormulario = function() {
+    if (!costeoEnModal) return;
+    const c = costeoEnModal;
+    infoCampos.forEach(id => { if (c.info[id] !== undefined) document.getElementById(id).value = c.info[id]; });
+    gastosCampos.forEach(id => { if (c.gastos[id] !== undefined) document.getElementById(id).value = c.gastos[id]; });
+    if (c.pctIIBB) document.getElementById('pct-iibb').value = c.pctIIBB;
+    if (c.pctGanancias) document.getElementById('pct-ganancias').value = c.pctGanancias;
+    productos = c.productos || [];
+    cerrarModal();
+    recalcular();
+    toast('Costeo cargado en el formulario.');
+  };
+
+  window.descargarCosteoGuardado = function() {
+    if (!costeoEnModal) return;
+    const c = costeoEnModal;
+    const prods = c.productos || [];
+    if (!prods.length) { alert('No hay productos.'); return; }
+
+    const gastosTotal = Object.values(c.gastos||{}).reduce((a,v)=>a+v,0);
+    const fobRealTotalGlobal = prods.reduce((a,p) => a+p.fobRealUnit*p.cant, 0);
+    const seguroTotal = c.gastos['g-seguro'] || 0;
+    const fleteDeclaradoTotal = c.gastos['g-flete-decl'] || 0;
+
+    const calc = prods.map(p => {
+      const fobRealTotal = p.fobRealUnit * p.cant;
+      const pctSeg = fobRealTotalGlobal > 0 ? fobRealTotal / fobRealTotalGlobal : 0;
+      const seguroProd = seguroTotal * pctSeg;
+      const fobDeclTotal = p.fobDeclUnit * p.cant;
+      const fleteDeclaradoProd = fleteDeclaradoTotal * pctSeg;
+      const cifDecl = fobDeclTotal + seguroProd + fleteDeclaradoProd;
+      const tribDer = cifDecl * p.der / 100;
+      const tribEstad = cifDecl * p.estad / 100;
+      const tribIva = cifDecl * p.iva / 100;
+      const pctFob = fobRealTotalGlobal > 0 ? fobRealTotal / fobRealTotalGlobal : 0;
+      const gastoProrrat = gastosTotal * pctFob;
+      const costoNeto = fobRealTotal + tribDer + tribEstad + gastoProrrat;
+      const costoTotal = costoNeto + tribIva;
+      return { nombre: p.nombre, cant: p.cant, costoUnitNeto: p.cant>0?costoNeto/p.cant:0, costoUnitFinal: p.cant>0?costoTotal/p.cant:0 };
+    });
+
+    const wb = XLSX.utils.book_new();
+    const ws = {};
+    const headerRow = ['Producto', 'Cantidad', 'Costo Neto Unit. (USD)', 'Costo Final Unit. (USD)'];
+    headerRow.forEach((h, col) => { ws[XLSX.utils.encode_cell({r:0,c:col})] = {t:'s',v:h}; });
+    calc.forEach((p, r) => {
+      ws[XLSX.utils.encode_cell({r:r+1,c:0})] = {t:'s',v:p.nombre};
+      ws[XLSX.utils.encode_cell({r:r+1,c:1})] = {t:'n',v:p.cant};
+      ws[XLSX.utils.encode_cell({r:r+1,c:2})] = {t:'n',v:Math.round(p.costoUnitNeto*100)/100};
+      ws[XLSX.utils.encode_cell({r:r+1,c:3})] = {t:'n',v:Math.round(p.costoUnitFinal*100)/100};
+    });
+    ws['!ref'] = XLSX.utils.encode_range({s:{r:0,c:0},e:{r:calc.length,c:3}});
+    ws['!cols'] = [{wch:28},{wch:12},{wch:20},{wch:20}];
+    XLSX.utils.book_append_sheet(wb, ws, 'Costeo');
+    const ref = c.info['imp-ref'] || 'importacion';
+    XLSX.writeFile(wb, 'costeo_' + ref + '.xlsx');
+  };
+
+  window.eliminarCosteo = async function(id, event) {
+    event.stopPropagation();
+    if (!confirm('¿Eliminar este costeo del historial?')) return;
+    try {
+      await deleteDoc(doc(db, 'costeos', id));
+      toast('Costeo eliminado.');
+      cargarHistorial();
+    } catch(e) {
+      toast('Error al eliminar: ' + e.message);
+    }
+  };
+
+  // Cargar historial al iniciar
+  window.addEventListener('DOMContentLoaded', () => {
+    cargarHistorial();
+  });
+</script>
+
+<script>
+let productos = [];
+let gastosCampos = ['g-flete-int','g-flete-decl','g-origen','g-destino','g-terminal','g-flete-int2','g-cert','g-insp','g-desp','g-seguro','g-otros'];
+let infoCampos = ['imp-ref','imp-prov','imp-origen','imp-fecha','imp-tc'];
+
+// ── Persistencia local ────────────────────────────────────────────────────────
+function guardar() {
+  const gastos = {};
+  gastosCampos.forEach(id => gastos[id] = parseFloat(document.getElementById(id).value) || 0);
+  const info = {};
+  infoCampos.forEach(id => info[id] = document.getElementById(id).value);
+  localStorage.setItem('costeo_productos', JSON.stringify(productos));
+  localStorage.setItem('costeo_gastos', JSON.stringify(gastos));
+  localStorage.setItem('costeo_info', JSON.stringify(info));
+  const now = new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+  document.getElementById('last-saved').textContent = 'Guardado: ' + now;
+}
+
+function cargar() {
+  try {
+    productos = JSON.parse(localStorage.getItem('costeo_productos') || '[]');
+    const gastos = JSON.parse(localStorage.getItem('costeo_gastos') || '{}');
+    const info = JSON.parse(localStorage.getItem('costeo_info') || '{}');
+    gastosCampos.forEach(id => { if (gastos[id]) document.getElementById(id).value = gastos[id]; });
+    infoCampos.forEach(id => { if (info[id]) document.getElementById(id).value = info[id]; });
+  } catch(e) { productos = []; }
+}
+
+function exportarJSON() {
+  const gastos = {};
+  gastosCampos.forEach(id => gastos[id] = parseFloat(document.getElementById(id).value) || 0);
+  const data = { productos, gastos, exportado: new Date().toISOString() };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'costeo_' + (document.getElementById('imp-ref').value || 'importacion') + '.json';
+  a.click();
+}
+
+function descargarCosteo() {
+  if (!productos.length) { alert('No hay productos para exportar.'); return; }
+
+  const gastosTotal = totalGastosGenerales();
+  const fobRealTotalGlobal = productos.reduce((a, p) => a + p.fobRealUnit * p.cant, 0);
+  const seguroTotal = parseFloat(document.getElementById('g-seguro').value) || 0;
+  const fleteDeclaradoTotal = parseFloat(document.getElementById('g-flete-decl').value) || 0;
+
+  const calc = productos.map(p => {
+    const fobRealTotal = p.fobRealUnit * p.cant;
+    const pctSeguro = fobRealTotalGlobal > 0 ? fobRealTotal / fobRealTotalGlobal : 0;
+    const seguroProd = seguroTotal * pctSeguro;
+    const fobDeclTotal = p.fobDeclUnit * p.cant;
+    const fleteDeclaradoProd = fleteDeclaradoTotal * pctSeguro;
+    const cifDecl = fobDeclTotal + seguroProd + fleteDeclaradoProd;
+    const tribDer = cifDecl * p.der / 100;
+    const tribEstad = cifDecl * p.estad / 100;
+    const tribIva = cifDecl * p.iva / 100;
+    const pctFob = fobRealTotalGlobal > 0 ? fobRealTotal / fobRealTotalGlobal : 0;
+    const gastoProrrat = gastosTotal * pctFob;
+    const costoNeto = fobRealTotal + tribDer + tribEstad + gastoProrrat;
+    const costoTotal = costoNeto + tribIva;
+    const costoUnitNeto  = p.cant > 0 ? costoNeto  / p.cant : 0;
+    const costoUnitFinal = p.cant > 0 ? costoTotal / p.cant : 0;
+    return { nombre: p.nombre, cant: p.cant, costoUnitNeto, costoUnitFinal };
+  });
+
+  const wb = XLSX.utils.book_new();
+  const ws = {};
+  const headerRow = ['Producto', 'Cantidad', 'Costo Neto Unit. (USD)', 'Costo Final Unit. (USD)'];
+  headerRow.forEach((h, c) => { ws[XLSX.utils.encode_cell({ r: 0, c })] = { t: 's', v: h }; });
+  calc.forEach((p, r) => {
+    ws[XLSX.utils.encode_cell({ r: r + 1, c: 0 })] = { t: 's', v: p.nombre };
+    ws[XLSX.utils.encode_cell({ r: r + 1, c: 1 })] = { t: 'n', v: p.cant };
+    ws[XLSX.utils.encode_cell({ r: r + 1, c: 2 })] = { t: 'n', v: Math.round(p.costoUnitNeto  * 100) / 100 };
+    ws[XLSX.utils.encode_cell({ r: r + 1, c: 3 })] = { t: 'n', v: Math.round(p.costoUnitFinal * 100) / 100 };
+  });
+  ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: calc.length, c: 3 } });
+  ws['!cols'] = [{ wch: 28 }, { wch: 12 }, { wch: 20 }, { wch: 20 }];
+  XLSX.utils.book_append_sheet(wb, ws, 'Costeo');
+  const ref = document.getElementById('imp-ref').value || 'importacion';
+  XLSX.writeFile(wb, 'costeo_' + ref + '.xlsx');
+}
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+// ── Gastos generales ──────────────────────────────────────────────────────────
+function totalGastosGenerales() {
+  return gastosCampos.reduce((a, id) => a + (parseFloat(document.getElementById(id).value) || 0), 0);
+}
+
+// ── Agregar producto ──────────────────────────────────────────────────────────
+function agregarProducto() {
+  const nombre = document.getElementById('p-nombre').value.trim();
+  const cant = parseFloat(document.getElementById('p-cant').value) || 0;
+  const fobRealUnit = parseFloat(document.getElementById('p-fob-real').value) || 0;
+  const fobDeclUnit = parseFloat(document.getElementById('p-fob-decl').value) || 0;
+  if (!nombre || !cant || !fobRealUnit) { toast('Completá nombre, cantidad y FOB real unitario.'); return; }
+  productos.push({
+    id: Date.now(),
+    nombre, cant,
+    fobRealUnit,
+    fobDeclUnit,
+    fleteDecl: parseFloat(document.getElementById('p-flete-decl').value) || 0,
+    der: parseFloat(document.getElementById('p-der').value) || 0,
+    estad: parseFloat(document.getElementById('p-estad').value) || 0,
+    iva: parseFloat(document.getElementById('p-iva').value) || 0,
+  });
+  ['p-nombre','p-cant','p-fob-real','p-fob-decl','p-der','p-estad','p-iva'].forEach(id => document.getElementById(id).value = '');
+  guardar();
+  recalcular();
+  toast('Producto agregado.');
+}
+
+function borrarProducto(id) {
+  if (!confirm('¿Eliminar este producto?')) return;
+  productos = productos.filter(p => p.id !== id);
+  guardar(); recalcular();
+}
+
+// ── Recalcular ────────────────────────────────────────────────────────────────
+function recalcular() {
+  const gastosTotal = totalGastosGenerales();
+  document.getElementById('total-gastos-generales').textContent = 'USD ' + fmt(gastosTotal);
+
+  const fobRealTotalGlobal = productos.reduce((a, p) => a + p.fobRealUnit * p.cant, 0);
+  const seguroTotal = parseFloat(document.getElementById('g-seguro').value) || 0;
+
+  const calculados = productos.map(p => {
+    const fobRealTotal = p.fobRealUnit * p.cant;
+    const pctSeguro = fobRealTotalGlobal > 0 ? fobRealTotal / fobRealTotalGlobal : 0;
+    const seguroProd = seguroTotal * pctSeguro;
+    const fobDeclTotal = p.fobDeclUnit * p.cant;
+    const fleteDeclaradoTotal = parseFloat(document.getElementById('g-flete-decl').value) || 0;
+    const fleteDeclaradoProd = fleteDeclaradoTotal * pctSeguro;
+    const cifDecl = fobDeclTotal + seguroProd + fleteDeclaradoProd;
+    const tribDer = cifDecl * p.der / 100;
+    const tribEstad = cifDecl * p.estad / 100;
+    const tribIva = cifDecl * p.iva / 100;
+    const tribTotal = tribDer + tribEstad + tribIva;
+    const pctFob = fobRealTotalGlobal > 0 ? fobRealTotal / fobRealTotalGlobal : 0;
+    const gastoProrrat = gastosTotal * pctFob;
+    const costoNeto = fobRealTotal + tribDer + tribEstad + gastoProrrat;
+    const costoUnitNeto = p.cant > 0 ? costoNeto / p.cant : 0;
+    const costoUnitConIva = costoUnitNeto * (1 + p.iva / 100);
+    const costoTotal = costoNeto + tribIva;
+    const costoUnit = costoUnitConIva;
+    return { ...p, fobRealTotal, fobDeclTotal, cifDecl, tribDer, tribEstad, tribIva, tribTotal, pctFob, gastoProrrat, costoNeto, costoTotal, costoUnit, costoUnitNeto, costoUnitConIva };
+  });
+
+  renderTabla(calculados, fobRealTotalGlobal);
+  renderResumen(calculados, gastosTotal);
+  guardar();
+}
+
+function fmt(n, dec=2) {
+  return Number(n).toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+}
+function fmtShort(n) { return fmt(n, 2); }
+
+// ── Render tabla ──────────────────────────────────────────────────────────────
+function renderTabla(calc, fobTotalGlobal) {
+  const tbody = document.getElementById('productos-body');
+  if (!calc.length) {
+    tbody.innerHTML = '<tr><td colspan="16" class="empty">Agregá productos abajo.</td></tr>';
+    return;
+  }
+
+  let html = calc.map(p => `
+    <tr>
+      <td style="font-weight:500">${p.nombre}<br><span class="col-sub">${p.cant} u.</span></td>
+      <td style="color:var(--text2)">${p.cant}</td>
+      <td class="group-sep">${fmtShort(p.fobRealUnit)}</td>
+      <td style="font-weight:500">${fmtShort(p.fobRealTotal)}</td>
+      <td class="group-sep" style="color:var(--text2)">${fmtShort(p.fobDeclUnit)}</td>
+      <td style="color:var(--text2)">${fmtShort(p.fleteDecl)}</td>
+      <td style="font-weight:500; color:var(--blue)">${fmtShort(p.cifDecl)}</td>
+      <td class="group-sep">
+        <span style="color:var(--text2)">${p.der}%</span><br>
+        <span class="col-sub">${fmtShort(p.tribDer)}</span>
+      </td>
+      <td>
+        <span style="color:var(--text2)">${p.estad}%</span><br>
+        <span class="col-sub">${fmtShort(p.tribEstad)}</span>
+      </td>
+      <td>
+        <span style="color:var(--text2)">${p.iva}%</span><br>
+        <span class="col-sub">${fmtShort(p.tribIva)}</span>
+      </td>
+      <td style="font-weight:500; color:var(--amber)">${fmtShort(p.tribTotal)}</td>
+      <td class="group-sep">
+        <span class="badge badge-blue">${fmt(p.pctFob * 100, 1)}%</span>
+      </td>
+      <td style="color:var(--text2)">${fmtShort(p.gastoProrrat)}</td>
+      <td class="group-sep"><span class="col-resultado">${fmtShort(p.costoTotal)}</span></td>
+      <td><span class="col-resultado">${fmtShort(p.costoUnitNeto)}</span></td>
+      <td><span class="col-resultado">${fmtShort(p.costoUnitConIva)}</span></td>
+      <td><button class="btn btn-sm btn-danger" onclick="borrarProducto(${p.id})">✕</button></td>
+    </tr>
+  `).join('');
+
+  const totFob = calc.reduce((a,p) => a+p.fobRealTotal, 0);
+  const totCif = calc.reduce((a,p) => a+p.cifDecl, 0);
+  const totTrib = calc.reduce((a,p) => a+p.tribTotal, 0);
+  const totGastos = calc.reduce((a,p) => a+p.gastoProrrat, 0);
+  const totCosto = calc.reduce((a,p) => a+p.costoTotal, 0);
+
+  html += `<tr style="background:var(--surface2); font-weight:500;">
+    <td colspan="3" style="color:var(--text2); font-size:11px; text-transform:uppercase; letter-spacing:0.05em; padding:8px 10px;">Totales</td>
+    <td>${fmtShort(totFob)}</td>
+    <td class="group-sep" colspan="2"></td>
+    <td style="color:var(--blue)">${fmtShort(totCif)}</td>
+    <td class="group-sep" colspan="3"></td>
+    <td style="color:var(--amber)">${fmtShort(totTrib)}</td>
+    <td class="group-sep"></td>
+    <td style="color:var(--text2)">${fmtShort(totGastos)}</td>
+    <td class="group-sep"><span class="col-resultado">${fmtShort(totCosto)}</span></td>
+    <td colspan="3"></td>
+  </tr>`;
+
+  tbody.innerHTML = html;
+}
+
+// ── Render resumen ────────────────────────────────────────────────────────────
+function renderResumen(calc, gastosTotal) {
+  const tc = parseFloat(document.getElementById('imp-tc').value) || 0;
+  const pctIIBB = parseFloat(document.getElementById('pct-iibb').value) || 0;
+  const pctGanancias = parseFloat(document.getElementById('pct-ganancias').value) || 0;
+
+  const totFob     = calc.reduce((a,p) => a + p.fobRealTotal, 0);
+  const totCif     = calc.reduce((a,p) => a + p.cifDecl, 0);
+  const totDer     = calc.reduce((a,p) => a + p.tribDer, 0);
+  const totEstad   = calc.reduce((a,p) => a + p.tribEstad, 0);
+  const totIva     = calc.reduce((a,p) => a + p.tribIva, 0);
+  const totIIBB    = totCif * pctIIBB / 100;
+  const totGanan   = totCif * pctGanancias / 100;
+  const totCosto   = calc.reduce((a,p) => a + p.costoTotal, 0);
+
+  document.getElementById('res-fob').textContent      = 'USD ' + fmtShort(totFob);
+  document.getElementById('res-cif').textContent      = 'USD ' + fmtShort(totCif);
+  document.getElementById('res-der').textContent      = 'USD ' + fmtShort(totDer);
+  document.getElementById('res-estad').textContent    = 'USD ' + fmtShort(totEstad);
+  document.getElementById('res-iva').textContent      = 'USD ' + fmtShort(totIva);
+  document.getElementById('res-iibb').textContent     = 'USD ' + fmtShort(totIIBB);
+  document.getElementById('res-ganancias').textContent = 'USD ' + fmtShort(totGanan);
+  const totNacionalizar = totDer + totEstad + totIva + totIIBB + totGanan;
+  document.getElementById('res-nacionalizar').textContent = 'USD ' + fmtShort(totNacionalizar);
+  document.getElementById('res-gastos').textContent   = 'USD ' + fmtShort(gastosTotal);
+  document.getElementById('res-total').textContent    = 'USD ' + fmtShort(totCosto);
+  document.getElementById('res-ars').textContent      = tc > 0 ? 'ARS ' + fmt(totCosto * tc, 0) : '—';
+}
+
+// ── Vaciar productos ─────────────────────────────────────────────────────────
+function vaciarProductos() {
+  if (!confirm('¿Vaciar todos los productos? Esta acción no se puede deshacer.')) return;
+  productos = [];
+  guardar();
+  recalcular();
+  toast('Productos eliminados.');
+}
+
+// ── Carga masiva Excel ───────────────────────────────────────────────────────
+function descargarPlantilla() {
+  const wb = XLSX.utils.book_new();
+  const data = [['Nombre del producto','Cantidad','FOB real unitario (USD)','FOB declarado unitario (USD)','Derechos de importacion (%)','Tasa de estadistica (%)','IVA (%)']];
+  for (let i = 0; i < 20; i++) data.push(['', '', '', '', '', '', '']);
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  ws['!cols'] = [{ wch: 32 }, { wch: 12 }, { wch: 22 }, { wch: 24 }, { wch: 22 }, { wch: 20 }, { wch: 10 }];
+  XLSX.utils.book_append_sheet(wb, ws, 'Productos');
+  XLSX.writeFile(wb, 'plantilla_productos_importacion.xlsx');
+}
+
+function cargarExcel(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, { type: 'array', cellDates: true, cellNF: false, cellText: false });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: false, blankrows: false });
+      if (!rows || rows.length < 2) { toast('El archivo está vacío o no tiene datos.'); return; }
+      let startRow = 1;
+      let agregados = 0;
+      let errores = [];
+      for (let i = startRow; i < rows.length; i++) {
+        const row = rows[i];
+        if (row.every(c => c === '' || c === null || c === undefined)) continue;
+        const nombre = String(row[0] || '').trim();
+        const cant = parseFloat(String(row[1]).replace(',', '.')) || 0;
+        const fobRealUnit = parseFloat(String(row[2]).replace(',', '.')) || 0;
+        const fobDeclUnit = parseFloat(String(row[3]).replace(',', '.')) || 0;
+        let der = parseFloat(String(row[4]).replace(',', '.')) || 0;
+        let estad = parseFloat(String(row[5]).replace(',', '.')) || 0;
+        let iva = parseFloat(String(row[6]).replace(',', '.')) || 0;
+        if (der > 0 && der < 1) der = der * 100;
+        if (estad > 0 && estad < 1) estad = estad * 100;
+        if (iva > 0 && iva < 1) iva = iva * 100;
+        if (!nombre || !cant || !fobRealUnit) { errores.push('Fila ' + (i + 1) + ': falta nombre, cantidad o FOB real.'); continue; }
+        productos.push({ id: Date.now() + i + Math.random(), nombre, cant, fobRealUnit, fobDeclUnit, fleteDecl: 0, der, estad, iva });
+        agregados++;
+      }
+      guardar(); recalcular();
+      document.getElementById('input-excel').value = '';
+      let msg = agregados + ' producto(s) cargado(s).';
+      if (errores.length) msg += ' ' + errores.length + ' fila(s) ignoradas.';
+      toast(msg);
+      if (errores.length) setTimeout(() => alert('Filas con problema:\n' + errores.join('\n')), 500);
+    } catch(err) {
+      toast('Error al leer el archivo: ' + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+(function init() {
+  cargar();
+  if (!document.getElementById('imp-fecha').value) {
+    document.getElementById('imp-fecha').value = new Date().toISOString().split('T')[0];
+  }
+  recalcular();
+  document.getElementById('last-saved').textContent = productos.length ? 'Datos cargados.' : 'Listo. Empezá a cargar datos.';
+})();
+</script>
+</body>
+</html>
