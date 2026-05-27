@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tablero DVT — Inventario v2</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f3;color:#1a1a1a;font-size:14px}
+#login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f5f5f3}
+.login-card{background:#fff;border:1px solid #e0e0db;border-radius:12px;padding:2rem;width:340px}
+.login-card h1{font-size:20px;font-weight:600;margin-bottom:6px}
+.login-card p{color:#666;font-size:13px;margin-bottom:1.5rem}
+.login-card label{font-size:12px;color:#666;display:block;margin-bottom:3px}
+.login-card input{width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;margin-bottom:12px}
+.login-card button{width:100%;padding:9px;background:#1a1a1a;color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer;font-weight:500}
+.login-card button:hover{opacity:.85}
+.btn-google{background:#fff!important;color:#1a1a1a!important;border:1px solid #ddd!important;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:10px}
+.btn-google:hover{background:#f5f5f3!important}
+.divider{display:flex;align-items:center;gap:8px;margin:14px 0;color:#aaa;font-size:12px}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:#eee}
+#login-error{color:#c0392b;font-size:12px;margin-top:8px;display:none}
+#app{display:none}
+.topbar{background:#fff;border-bottom:1px solid #e0e0db;padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;height:52px;position:sticky;top:0;z-index:100}
+.topbar-title{font-weight:600;font-size:15px}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.user-badge{font-size:12px;color:#666;background:#f5f5f3;padding:4px 10px;border-radius:20px}
+.btn-logout{font-size:12px;color:#666;background:none;border:1px solid #ddd;border-radius:6px;padding:4px 10px;cursor:pointer}
+.btn-logout:hover{background:#f5f5f3}
+.tabs-wrap{background:#fff;border-bottom:1px solid #e0e0db;padding:0 1.5rem;display:flex;gap:2px;overflow-x:auto}
+.tab{padding:12px 14px;font-size:13px;cursor:pointer;border:none;background:transparent;color:#666;border-bottom:2px solid transparent;white-space:nowrap}
+.tab.active{color:#1a1a1a;border-bottom-color:#1a1a1a;font-weight:500}
+.tab:hover:not(.active){color:#1a1a1a}
+.content{max-width:1100px;margin:0 auto;padding:1.5rem}
+.card{background:#fff;border:1px solid #e0e0db;border-radius:10px;padding:1rem 1.25rem;margin-bottom:1rem}
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:1.2rem}
+.metric{background:#f5f5f3;border-radius:8px;padding:12px 14px}
+.metric-label{font-size:11px;color:#888;margin-bottom:4px}
+.metric-value{font-size:19px;font-weight:600;color:#1a1a1a}
+.metric-sub{font-size:11px;margin-top:2px;color:#888}
+.positive{color:#2d7a2d}.negative{color:#c0392b}
+.section-title{font-size:11px;font-weight:600;color:#888;margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em}
+table{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
+th{color:#888;font-weight:500;padding:6px 8px;text-align:left;border-bottom:1px solid #f0f0ec;font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+td{padding:7px 8px;border-bottom:1px solid #f0f0ec;color:#1a1a1a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#fafaf8}
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:500}
+.badge-green{background:#e8f5e9;color:#2d7a2d}
+.badge-red{background:#fdecea;color:#c0392b}
+.badge-blue{background:#e3f0fb;color:#1a6ab5}
+.badge-amber{background:#fff8e1;color:#b07800}
+.badge-gray{background:#f0f0ec;color:#666}
+input,select,textarea{font-size:13px;padding:7px 10px;border-radius:6px;border:1px solid #ddd;background:#fff;color:#1a1a1a;outline:none}
+input:focus,select:focus{border-color:#999}
+.btn{padding:7px 14px;border-radius:6px;border:1px solid #ddd;background:#fff;color:#1a1a1a;cursor:pointer;font-size:13px}
+.btn:hover{background:#f5f5f3}
+.btn-primary{background:#1a1a1a;color:#fff;border-color:#1a1a1a}
+.btn-primary:hover{opacity:.85}
+.btn-danger{border-color:#c0392b;color:#c0392b}
+.btn-danger:hover{background:#fdecea}
+.btn-sm{padding:3px 8px;font-size:11px}
+.form-grid{display:grid;gap:10px;align-items:end}
+.form-group{display:flex;flex-direction:column;gap:4px}
+.form-label{font-size:11px;color:#888;font-weight:500}
+.sku-code{font-family:'SF Mono',monospace;font-size:11px;background:#f0f0ec;padding:2px 6px;border-radius:4px}
+.formula-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:8px 12px;background:#f5f5f3;border-radius:6px;margin-bottom:10px;font-size:12px}
+.formula-bar .chunk{display:inline-flex;gap:4px;align-items:center}
+.formula-bar .val{font-weight:600;color:#1a1a1a}
+.formula-bar .op{color:#aaa}
+.cost-preview{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;font-size:12px;min-height:24px}
+.preview-chip{background:#f0f0ec;border-radius:4px;padding:3px 8px;display:inline-flex;gap:4px}
+.preview-chip .v{font-weight:600}
+.preview-chip.total{border:1px solid #bbb}
+.fifo-layer{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;background:#f5f5f3;margin-bottom:4px;font-size:12px}
+.fifo-bar{height:3px;border-radius:2px;background:#378ADD;flex:1;min-width:20px}
+.empty{color:#aaa;text-align:center;padding:2rem;font-size:13px}
+.loading{color:#aaa;text-align:center;padding:1rem;font-size:13px}
+.inline-edit{background:transparent;border:none;border-bottom:1px solid #ddd;border-radius:0;padding:2px 4px;width:100%;font-size:12px;color:#1a1a1a}
+.inline-edit:focus{outline:none;border-bottom-color:#1a1a1a}
+.desglose-row td{background:#fafaf8!important;font-size:11px;color:#888;padding:3px 8px 5px 8px}
+.toast{position:fixed;bottom:20px;right:20px;background:#1a1a1a;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none}
+.toast.show{opacity:1}
+@media(max-width:700px){.metrics{grid-template-columns:1fr 1fr}.form-grid{grid-template-columns:1fr!important}.tabs-wrap{gap:0}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-card">
+    <h1>Tablero DVT</h1>
+    <p>Ingresá con tu cuenta para continuar</p>
+    <label>Email</label>
+    <input type="email" id="login-email" placeholder="usuario@email.com">
+    <label>Contraseña</label>
+    <input type="password" id="login-pass" placeholder="••••••••">
+    <button onclick="doLogin()">Ingresar con email</button>
+    <div class="divider">o</div>
+    <button class="btn-google" onclick="doLoginGoogle()">
+      <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+      Ingresar con Google
+    </button>
+    <div id="login-error"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="topbar">
+    <span class="topbar-title">📦 Tablero DVT</span>
+    <div class="topbar-right">
+      <span class="user-badge" id="user-label"></span>
+      <button class="btn-logout" onclick="doLogout()">Salir</button>
+    </div>
+  </div>
+  <div class="tabs-wrap">
+    <button class="tab active" onclick="switchTab('sku',this)">SKUs</button>
+    <button class="tab" onclick="switchTab('compras',this)">Compras</button>
+    <button class="tab" onclick="switchTab('ventas',this)">Ventas</button>
+    <button class="tab" onclick="switchTab('fifo',this)">Stock FIFO</button>
+    <button class="tab" onclick="switchTab('rentabilidad',this)">Rentabilidad</button>
+    <button class="tab" onclick="switchTab('movimientos',this)">Movimientos</button>
+  </div>
+  <div class="content">
+    <div id="tab-sku"></div>
+    <div id="tab-compras" style="display:none"></div>
+    <div id="tab-ventas" style="display:none"></div>
+    <div id="tab-fifo" style="display:none"></div>
+    <div id="tab-rentabilidad" style="display:none"></div>
+    <div id="tab-movimientos" style="display:none"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- FIREBASE -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
+import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDD-lwQRtL5aE-FtBolS5gOlCL11UzDdd0",
+  authDomain: "tablero-dvt.firebaseapp.com",
+  projectId: "tablero-dvt",
+  storageBucket: "tablero-dvt.firebasestorage.app",
+  messagingSenderId: "1026691791778",
+  appId: "1:1026691791778:web:2e77b9954d51fb353210fb"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+let currentUser = null;
+let skus = [], purchases = [], sales = [];
+let activeTab = 'sku';
+
+// ─── AUTH ───────────────────────────────────────────
+window.doLogin = async () => {
+  const email = document.getElementById('login-email').value;
+  const pass = document.getElementById('login-pass').value;
+  const errEl = document.getElementById('login-error');
+  try {
+    await signInWithEmailAndPassword(auth, email, pass);
+    errEl.style.display = 'none';
+  } catch(e) {
+    errEl.textContent = 'Email o contraseña incorrectos';
+    errEl.style.display = 'block';
+  }
+};
+
+window.doLoginGoogle = async () => {
+  const provider = new GoogleAuthProvider();
+  const errEl = document.getElementById('login-error');
+  try {
+    await signInWithPopup(auth, provider);
+    errEl.style.display = 'none';
+  } catch(e) {
+    errEl.textContent = 'Error al ingresar con Google. Intentá de nuevo.';
+    errEl.style.display = 'block';
+  }
+};
+
+window.doLogout = () => signOut(auth);
+
+document.getElementById('login-email').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('login-pass').focus(); });
+document.getElementById('login-pass').addEventListener('keydown', e => { if(e.key==='Enter') window.doLogin(); });
+
+onAuthStateChanged(auth, user => {
+  if(user) {
+    currentUser = user;
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    document.getElementById('user-label').textContent = user.email;
+    loadAll();
+  } else {
+    currentUser = null;
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('app').style.display = 'none';
+  }
+});
+
+// ─── LOAD DATA ───────────────────────────────────────
+async function loadAll() {
+  const [skuSnap, purSnap, salSnap] = await Promise.all([
+    getDocs(query(collection(db,'skus'), orderBy('code'))),
+    getDocs(query(collection(db,'purchases'), orderBy('date'))),
+    getDocs(query(collection(db,'sales'), orderBy('date')))
+  ]);
+  skus = skuSnap.docs.map(d => ({id:d.id,...d.data()}));
+  purchases = purSnap.docs.map(d => ({id:d.id,...d.data()}));
+  sales = salSnap.docs.map(d => ({id:d.id,...d.data()}));
+  renderTab(activeTab);
+}
+
+// ─── HELPERS ─────────────────────────────────────────
+function getSku(id){ return skus.find(s=>s.id===id)||{code:'?',product:'Desconocido',unit:'u.',weightKg:null}; }
+function fmt(n){ return '$'+parseFloat(n||0).toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmtInt(n){ return '$'+Math.round(n||0).toLocaleString('es-AR'); }
+function pct(n){ return parseFloat(n||0).toFixed(2)+'%'; }
+function fmtKg(v){ if(v===null||v===undefined||isNaN(v))return'—'; return v<1?(v*1000).toFixed(0)+' g':parseFloat(v).toFixed(3).replace(/\.?0+$/,'')+' kg'; }
+
+function unitCost(p){
+  const sk = getSku(p.skuId);
+  const fob = parseFloat(p.fob)||0;
+  const gyro = fob*(parseFloat(p.gyroPct)||0)/100;
+  const flete = (parseFloat(p.freightPerKg)||0)*(parseFloat(sk.weightKg)||0);
+  return fob+gyro+flete;
+}
+function costBreakdown(p){
+  const sk = getSku(p.skuId);
+  const fob = parseFloat(p.fob)||0;
+  const gyro = fob*(parseFloat(p.gyroPct)||0)/100;
+  const flete = (parseFloat(p.freightPerKg)||0)*(parseFloat(sk.weightKg)||0);
+  return {fob,gyro,flete,total:fob+gyro+flete};
+}
+function calcFIFO(skuId, allP, allS){
+  let layers = [];
+  let soldCost=0, soldQty=0;
+  allP.filter(p=>p.skuId===skuId).sort((a,b)=>a.date.localeCompare(b.date))
+      .forEach(p=>layers.push({...p,remaining:p.qty,uc:unitCost(p)}));
+  allS.filter(s=>s.skuId===skuId).sort((a,b)=>a.date.localeCompare(b.date))
+      .forEach(s=>{
+        let need=s.qty;
+        for(let l of layers){if(need<=0)break;let take=Math.min(l.remaining,need);soldCost+=take*l.uc;soldQty+=take;l.remaining-=take;need-=take;}
+      });
+  const stock = layers.filter(l=>l.remaining>0);
+  return {layers:stock, soldCost, soldQty,
+    stockValue:stock.reduce((a,l)=>a+l.remaining*l.uc,0),
+    stockQty:stock.reduce((a,l)=>a+l.remaining,0)};
+}
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+// ─── TABS ─────────────────────────────────────────────
+window.switchTab = (t, btn) => {
+  document.querySelectorAll('.tab').forEach(e=>e.classList.remove('active'));
+  document.querySelectorAll('[id^="tab-"]').forEach(e=>e.style.display='none');
+  document.getElementById('tab-'+t).style.display='block';
+  if(btn)btn.classList.add('active');
+  activeTab=t;
+  renderTab(t);
+};
+function renderTab(t){
+  if(t==='sku') renderSKU();
+  else if(t==='compras') renderCompras();
+  else if(t==='ventas') renderVentas();
+  else if(t==='fifo') renderFIFO();
+  else if(t==='rentabilidad') renderRentabilidad();
+  else if(t==='movimientos') renderMovimientos();
+}
+
+// ─── SKU ─────────────────────────────────────────────
+function renderSKU(){
+  const el = document.getElementById('tab-sku');
+  const totalWeight = skus.filter(s=>s.active).reduce((a,s)=>{
+    const r=calcFIFO(s.id,purchases,sales);
+    return a+(parseFloat(s.weightKg)||0)*r.stockQty;
+  },0);
+  const rows = skus.map(s=>{
+    const r=calcFIFO(s.id,purchases,sales);
+    const sw=(parseFloat(s.weightKg)||0)*r.stockQty;
+    const pC=purchases.filter(p=>p.skuId===s.id).length;
+    const sC=sales.filter(v=>v.skuId===s.id).length;
+    return`<tr>
+      <td style="width:95px"><span class="sku-code">${s.code}</span></td>
+      <td style="width:180px">${s.product}</td>
+      <td style="width:110px">${s.category||'—'}</td>
+      <td style="width:50px">${s.unit||'u.'}</td>
+      <td style="width:90px">${s.weightKg!=null?fmtKg(s.weightKg):'—'}</td>
+      <td style="width:90px;text-align:right">${sw>0?fmtKg(sw):'—'}</td>
+      <td style="width:60px;text-align:center"><span class="badge ${s.active?'badge-green':'badge-gray'}">${s.active?'Activo':'Inact.'}</span></td>
+      <td style="width:55px;text-align:center;color:#aaa;font-size:11px">${pC}c/${sC}v</td>
+      <td style="width:70px;text-align:right">
+        <button class="btn btn-sm" onclick="editSkuModal('${s.id}')">Editar</button>
+        <button class="btn btn-sm btn-danger" style="margin-top:2px" onclick="toggleSku('${s.id}')">${s.active?'Desact.':'Activar'}</button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  el.innerHTML=`
+<div class="metrics" style="grid-template-columns:repeat(3,1fr)">
+  <div class="metric"><div class="metric-label">SKUs activos</div><div class="metric-value">${skus.filter(s=>s.active).length}</div><div class="metric-sub">${skus.length} en total</div></div>
+  <div class="metric"><div class="metric-label">Peso total en stock</div><div class="metric-value">${totalWeight>=1000?(totalWeight/1000).toFixed(2)+' t':totalWeight.toFixed(2)+' kg'}</div></div>
+  <div class="metric"><div class="metric-label">Con peso definido</div><div class="metric-value">${skus.filter(s=>s.active&&s.weightKg!=null).length}</div><div class="metric-sub">de ${skus.filter(s=>s.active).length} activos</div></div>
+</div>
+<div class="card" style="margin-bottom:1rem">
+  <div class="section-title">Nuevo SKU</div>
+  <div class="form-grid" style="grid-template-columns:100px 1fr 120px 60px 80px auto">
+    <div class="form-group"><label class="form-label">Código</label><input type="text" id="n-sku-code" placeholder="LPX-001" style="width:100%"></div>
+    <div class="form-group"><label class="form-label">Producto</label><input type="text" id="n-sku-prod" placeholder="Nombre del producto" style="width:100%"></div>
+    <div class="form-group"><label class="form-label">Categoría</label><input type="text" id="n-sku-cat" placeholder="Electrónica…" style="width:100%"></div>
+    <div class="form-group"><label class="form-label">Unidad</label><input type="text" id="n-sku-unit" value="u." style="width:100%"></div>
+    <div class="form-group"><label class="form-label">Peso (kg)</label><input type="number" id="n-sku-weight" min="0" step="0.001" placeholder="0.000" style="width:100%"></div>
+    <button class="btn btn-primary" style="margin-top:18px" onclick="addSku()">+ Agregar</button>
+  </div>
+</div>
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+    <span class="section-title" style="margin-bottom:0">Catálogo de SKUs</span>
+  </div>
+  <div style="overflow-x:auto"><table style="min-width:720px">
+    <thead><tr><th>Código</th><th>Producto</th><th>Categoría</th><th>Unidad</th><th>Peso unit.</th><th style="text-align:right">Peso en stock</th><th style="text-align:center">Estado</th><th style="text-align:center">Mov.</th><th></th></tr></thead>
+    <tbody>${rows||'<tr><td colspan="9" class="empty">Sin SKUs registrados</td></tr>'}</tbody>
+  </table></div>
+</div>`;
+}
+
+window.addSku = async () => {
+  const code = document.getElementById('n-sku-code').value.trim();
+  const product = document.getElementById('n-sku-prod').value.trim();
+  const category = document.getElementById('n-sku-cat').value.trim();
+  const unit = document.getElementById('n-sku-unit').value.trim()||'u.';
+  const wRaw = document.getElementById('n-sku-weight').value;
+  const weightKg = wRaw===''?null:parseFloat(wRaw);
+  if(!code||!product){showToast('Completá código y producto');return;}
+  if(skus.find(s=>s.code.toLowerCase()===code.toLowerCase())){showToast('Ese código ya existe');return;}
+  await addDoc(collection(db,'skus'),{code,product,category,unit,weightKg:isNaN(weightKg)?null:weightKg,active:true,createdBy:currentUser.email,createdAt:serverTimestamp()});
+  await logMovimiento('SKU creado',`${code} — ${product}`);
+  ['n-sku-code','n-sku-prod','n-sku-cat','n-sku-weight'].forEach(x=>document.getElementById(x).value='');
+  showToast('SKU agregado ✓');
+  await loadAll();
+};
+
+window.toggleSku = async (id) => {
+  const s = skus.find(x=>x.id===id);
+  if(!s)return;
+  await updateDoc(doc(db,'skus',id),{active:!s.active});
+  await logMovimiento('SKU '+(s.active?'desactivado':'activado'),s.code+' — '+s.product);
+  showToast('SKU actualizado ✓');
+  await loadAll();
+};
+
+window.editSkuModal = (id) => {
+  const s = skus.find(x=>x.id===id);
+  if(!s)return;
+  const newProd = prompt('Nombre del producto:',s.product);
+  if(newProd===null)return;
+  const newCat = prompt('Categoría:',s.category||'');
+  const newUnit = prompt('Unidad:',s.unit||'u.');
+  const newW = prompt('Peso (kg):',s.weightKg!=null?s.weightKg:'');
+  const wKg = newW===''||newW===null?null:parseFloat(newW);
+  updateDoc(doc(db,'skus',id),{product:newProd||s.product,category:newCat||'',unit:newUnit||'u.',weightKg:isNaN(wKg)?null:wKg})
+    .then(()=>logMovimiento('SKU editado',s.code))
+    .then(()=>loadAll())
+    .then(()=>showToast('SKU actualizado ✓'));
+};
+
+// ─── COMPRAS ──────────────────────────────────────────
+function renderCompras(from='',to='',prod=''){
+  const el = document.getElementById('tab-compras');
+  let fp = purchases;
+  if(from) fp=fp.filter(p=>p.date>=from);
+  if(to)   fp=fp.filter(p=>p.date<=to);
+  if(prod) fp=fp.filter(p=>p.skuId===prod);
+
+  const skuOpts = skus.filter(s=>s.active).map(s=>`<option value="${s.id}">${s.code} — ${s.product}</option>`).join('');
+  const totFob  = fp.reduce((a,p)=>a+(parseFloat(p.fob)||0)*p.qty,0);
+  const totFlete= fp.reduce((a,p)=>a+(parseFloat(p.freightPerKg)||0)*(parseFloat(getSku(p.skuId).weightKg)||0)*p.qty,0);
+  const totCosto= fp.reduce((a,p)=>a+unitCost(p)*p.qty,0);
+
+  const rows = fp.length ? fp.map(p=>{
+    const sk=getSku(p.skuId);
+    const bd=costBreakdown(p);
+    return`<tr>
+      <td style="width:88px">${p.date}</td>
+      <td style="width:78px"><span class="sku-code">${sk.code}</span></td>
+      <td style="width:130px;white-space:normal;line-height:1.3">${sk.product}</td>
+      <td style="width:65px;text-align:right">${sk.weightKg!=null?fmtKg(sk.weightKg):'—'}</td>
+      <td style="width:45px;text-align:right">${p.qty}</td>
+      <td style="width:82px;text-align:right">${fmt(bd.fob)}</td>
+      <td style="width:55px;text-align:center"><span class="badge badge-amber">${parseFloat(p.gyroPct||0).toFixed(1)}%</span></td>
+      <td style="width:72px;text-align:right">${fmt(p.freightPerKg)}/kg</td>
+      <td style="width:85px;text-align:right;font-weight:600">${fmt(bd.total)}</td>
+      <td style="width:90px;text-align:right">${fmtInt(bd.total*p.qty)}</td>
+      <td style="width:80px">${p.supplier||'—'}</td>
+      <td style="width:85px;color:#aaa;font-size:10px;white-space:normal">${p.createdBy||''}</td>
+      <td style="width:36px;text-align:right"><button class="btn btn-sm btn-danger" onclick="delPurchase('${p.id}')">✕</button></td>
+    </tr>
+    <tr class="desglose-row"><td colspan="13">Desglose: FOB ${fmt(bd.fob)} + Giro ${fmt(bd.gyro)} (${parseFloat(p.gyroPct||0).toFixed(1)}%) + Flete ${fmt(bd.flete)} (${fmt(p.freightPerKg)}/kg × ${fmtKg(sk.weightKg)}) = <strong>${fmt(bd.total)}/u.</strong></td></tr>`;
+  }).join('') : `<tr><td colspan="13" class="empty">Sin compras en el período</td></tr>`;
+
+  const skuFilterOpts = `<option value="">Todos</option>`+skus.map(s=>`<option value="${s.id}" ${prod===s.id?'selected':''}>${s.code} — ${s.product}</option>`).join('');
+
+  el.innerHTML=`
+<div class="card" style="margin-bottom:1rem">
+  <div class="section-title">Registrar compra</div>
+  <div class="formula-bar">Costo unitario = <span class="chunk"><span class="val">FOB</span></span> <span class="op">+</span> <span class="chunk"><span class="val">FOB × % Giro</span></span> <span class="op">+</span> <span class="chunk"><span class="val">Flete/kg × kg unitario</span></span></div>
+  <div class="form-grid" style="grid-template-columns:100px 1fr 80px 90px 75px 100px 120px auto">
+    <div class="form-group"><label class="form-label">Fecha</label><input type="date" id="n-date" value="${new Date().toISOString().slice(0,10)}"></div>
+    <div class="form-group"><label class="form-label">SKU</label><select id="n-sku-sel" style="width:100%" onchange="updatePreview()"><option value="">Seleccionar…</option>${skuOpts}</select></div>
+    <div class="form-group"><label class="form-label">Cantidad</label><input type="number" id="n-qty" min="1" value="10" style="width:100%"></div>
+    <div class="form-group"><label class="form-label">FOB unitario</label><input type="number" id="n-fob" min="0" step="0.01" value="" oninput="updatePreview()" style="width:100%" placeholder="0.00"></div>
+    <div class="form-group"><label class="form-label">% Giro</label><input type="number" id="n-gyro" min="0" step="0.01" value="3" oninput="updatePreview()" style="width:100%"></div>
+    <div class="form-group"><label class="form-label">Flete/kg ($)</label><input type="number" id="n-freight" min="0" step="0.01" value="" oninput="updatePreview()" style="width:100%" placeholder="0.00"></div>
+    <div class="form-group"><label class="form-label">Proveedor</label><input type="text" id="n-supp" placeholder="Proveedor" style="width:100%"></div>
+    <button class="btn btn-primary" style="margin-top:18px" onclick="addPurchase()">+ Agregar</button>
+  </div>
+  <div class="cost-preview" id="cost-preview"></div>
+</div>
+<div class="metrics" style="grid-template-columns:repeat(4,1fr)">
+  <div class="metric"><div class="metric-label">Lotes</div><div class="metric-value">${fp.length}</div></div>
+  <div class="metric"><div class="metric-label">Total FOB</div><div class="metric-value">${fmtInt(totFob)}</div></div>
+  <div class="metric"><div class="metric-label">Total flete</div><div class="metric-value">${fmtInt(totFlete)}</div></div>
+  <div class="metric"><div class="metric-label">Costo total</div><div class="metric-value">${fmtInt(totCosto)}</div></div>
+</div>
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+    <span class="section-title" style="margin-bottom:0">Historial de compras</span>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <input type="date" id="f-from" value="${from}" onchange="filterCompras()">
+      <input type="date" id="f-to" value="${to}" onchange="filterCompras()">
+      <select id="f-sku" onchange="filterCompras()">${skuFilterOpts}</select>
+    </div>
+  </div>
+  <div style="overflow-x:auto"><table style="min-width:960px">
+    <thead><tr><th>Fecha</th><th>Código</th><th>Producto</th><th style="text-align:right">Peso/u.</th><th style="text-align:right">Cant.</th><th style="text-align:right">FOB/u.</th><th style="text-align:center">% Giro</th><th style="text-align:right">Flete/kg</th><th style="text-align:right">Costo/u.</th><th style="text-align:right">Total lote</th><th>Proveedor</th><th>Usuario</th><th></th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>
+</div>`;
+}
+
+window.filterCompras = () => {
+  const from = document.getElementById('f-from')?.value||'';
+  const to   = document.getElementById('f-to')?.value||'';
+  const prod = document.getElementById('f-sku')?.value||'';
+  renderCompras(from,to,prod);
+};
+
+window.updatePreview = () => {
+  const skuId = document.getElementById('n-sku-sel')?.value;
+  const fob   = parseFloat(document.getElementById('n-fob')?.value)||0;
+  const gyroP = parseFloat(document.getElementById('n-gyro')?.value)||0;
+  const fr    = parseFloat(document.getElementById('n-freight')?.value)||0;
+  const sk    = skus.find(s=>s.id===skuId);
+  const prev  = document.getElementById('cost-preview');
+  if(!prev||!sk||!fob){if(prev)prev.innerHTML='';return;}
+  const wKg   = parseFloat(sk.weightKg)||0;
+  const gyro  = fob*gyroP/100;
+  const flete = fr*wKg;
+  const total = fob+gyro+flete;
+  prev.innerHTML=`
+    <span class="preview-chip">FOB <span class="v">${fmt(fob)}</span></span>
+    <span style="color:#aaa">+</span>
+    <span class="preview-chip">Giro <span class="v">${fmt(gyro)}</span></span>
+    <span style="color:#aaa">+</span>
+    <span class="preview-chip">Flete <span class="v">${fmt(flete)}</span> <span style="color:#aaa">(${fmt(fr)}/kg × ${fmtKg(wKg)})</span></span>
+    <span style="color:#aaa">=</span>
+    <span class="preview-chip total">Costo/u. <span class="v" style="font-size:14px">${fmt(total)}</span></span>`;
+};
+
+window.addPurchase = async () => {
+  const d      = document.getElementById('n-date').value;
+  const skuId  = document.getElementById('n-sku-sel').value;
+  const qty    = parseFloat(document.getElementById('n-qty').value)||0;
+  const fob    = parseFloat(document.getElementById('n-fob').value)||0;
+  const gyroPct= parseFloat(document.getElementById('n-gyro').value)||0;
+  const freightPerKg = parseFloat(document.getElementById('n-freight').value)||0;
+  const supplier = document.getElementById('n-supp').value.trim();
+  if(!d||!skuId||qty<=0||fob<=0){showToast('Completá fecha, SKU, cantidad y FOB');return;}
+  const sk = getSku(skuId);
+  const uc = fob + fob*gyroPct/100 + freightPerKg*(parseFloat(sk.weightKg)||0);
+  await addDoc(collection(db,'purchases'),{date:d,skuId,qty,fob,gyroPct,freightPerKg,supplier:supplier||'—',unitCostCalc:uc,createdBy:currentUser.email,createdAt:serverTimestamp()});
+  await logMovimiento('Compra registrada',`${sk.code} — ${qty} u. @ ${fmt(uc)}/u. | Proveedor: ${supplier||'—'}`);
+  showToast('Compra registrada ✓');
+  await loadAll();
+};
+
+window.delPurchase = async (id) => {
+  if(!confirm('¿Eliminar esta compra?'))return;
+  const p = purchases.find(x=>x.id===id);
+  await deleteDoc(doc(db,'purchases',id));
+  if(p) await logMovimiento('Compra eliminada',`${getSku(p.skuId).code} — ${p.date}`);
+  showToast('Compra eliminada');
+  await loadAll();
+};
+
+// ─── VENTAS ───────────────────────────────────────────
+function renderVentas(from='',to='',prod=''){
+  const el = document.getElementById('tab-ventas');
+  let fs = sales;
+  if(from) fs=fs.filter(s=>s.date>=from);
+  if(to)   fs=fs.filter(s=>s.date<=to);
+  if(prod) fs=fs.filter(s=>s.skuId===prod);
+
+  const skuOpts = skus.filter(s=>s.active).map(s=>`<option value="${s.id}">${s.code} — ${s.product}</option>`).join('');
+  const skuFilterOpts = `<option value="">Todos</option>`+skus.map(s=>`<option value="${s.id}" ${prod===s.id?'selected':''}>${s.code}</option>`).join('');
+
+  const rows = fs.length ? fs.map(s=>{
+    const sk=getSku(s.skuId);
+    const r=calcFIFO(s.skuId,purchases,sales);
+    const fifoU=r.soldQty>0?r.soldCost/r.soldQty:0;
+    const margin=s.unitPrice>0?(s.unitPrice-fifoU)/s.unitPrice*100:0;
+    return`<tr>
+      <td style="width:90px">${s.date}</td>
+      <td style="width:78px"><span class="sku-code">${sk.code}</span></td>
+      <td>${sk.product}</td>
+      <td style="width:50px;text-align:right">${s.qty}</td>
+      <td style="width:90px;text-align:right">${fmt(s.unitPrice)}</td>
+      <td style="width:100px;text-align:right;font-weight:600">${fmtInt(s.qty*s.unitPrice)}</td>
+      <td style="width:75px;text-align:center"><span class="badge ${margin>=30?'badge-green':margin>=10?'badge-blue':'badge-red'}">${pct(margin)}</span></td>
+      <td style="width:85px;color:#aaa;font-size:10px">${s.createdBy||''}</td>
+      <td style="width:36px;text-align:right"><button class="btn btn-sm btn-danger" onclick="delSale('${s.id}')">✕</button></td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="9" class="empty">Sin ventas en el período</td></tr>`;
+
+  el.innerHTML=`
+<div class="card" style="margin-bottom:1rem">
+  <div class="section-title">Registrar venta</div>
+  <div class="form-grid" style="grid-template-columns:100px 1fr 80px 110px auto">
+    <div class="form-group"><label class="form-label">Fecha</label><input type="date" id="sv-date" value="${new Date().toISOString().slice(0,10)}"></div>
+    <div class="form-group"><label class="form-label">SKU</label><select id="sv-sku" style="width:100%"><option value="">Seleccionar…</option>${skuOpts}</select></div>
+    <div class="form-group"><label class="form-label">Cantidad</label><input type="number" id="sv-qty" min="1" value="" placeholder="0" style="width:100%"></div>
+    <div class="form-group"><label class="form-label">Precio unitario</label><input type="number" id="sv-price" min="0" step="0.01" value="" placeholder="0.00" style="width:100%"></div>
+    <button class="btn btn-primary" style="margin-top:18px" onclick="addSale()">+ Agregar</button>
+  </div>
+</div>
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+    <span class="section-title" style="margin-bottom:0">Historial de ventas</span>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <input type="date" id="fv-from" value="${from}" onchange="filterVentas()">
+      <input type="date" id="fv-to" value="${to}" onchange="filterVentas()">
+      <select id="fv-sku" onchange="filterVentas()">${skuFilterOpts}</select>
+    </div>
+  </div>
+  <div style="overflow-x:auto"><table style="min-width:640px">
+    <thead><tr><th>Fecha</th><th>Código</th><th>Producto</th><th style="text-align:right">Cant.</th><th style="text-align:right">Precio/u.</th><th style="text-align:right">Total</th><th style="text-align:center">Margen FIFO</th><th>Usuario</th><th></th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>
+</div>`;
+}
+
+window.filterVentas = () => {
+  renderVentas(document.getElementById('fv-from')?.value||'',document.getElementById('fv-to')?.value||'',document.getElementById('fv-sku')?.value||'');
+};
+
+window.addSale = async () => {
+  const d       = document.getElementById('sv-date').value;
+  const skuId   = document.getElementById('sv-sku').value;
+  const qty     = parseFloat(document.getElementById('sv-qty').value)||0;
+  const unitPrice = parseFloat(document.getElementById('sv-price').value)||0;
+  if(!d||!skuId||qty<=0||unitPrice<=0){showToast('Completá todos los campos');return;}
+  const sk = getSku(skuId);
+  await addDoc(collection(db,'sales'),{date:d,skuId,qty,unitPrice,createdBy:currentUser.email,createdAt:serverTimestamp()});
+  await logMovimiento('Venta registrada',`${sk.code} — ${qty} u. @ ${fmt(unitPrice)}/u.`);
+  showToast('Venta registrada ✓');
+  await loadAll();
+};
+
+window.delSale = async (id) => {
+  if(!confirm('¿Eliminar esta venta?'))return;
+  const s = sales.find(x=>x.id===id);
+  await deleteDoc(doc(db,'sales',id));
+  if(s) await logMovimiento('Venta eliminada',`${getSku(s.skuId).code} — ${s.date}`);
+  showToast('Venta eliminada');
+  await loadAll();
+};
+
+// ─── FIFO ──────────────────────────────────────────────
+function renderFIFO(){
+  const el = document.getElementById('tab-fifo');
+  let html = '';
+  skus.filter(s=>s.active).forEach(sk=>{
+    const r=calcFIFO(sk.id,purchases,sales);
+    const maxQ=Math.max(...r.layers.map(l=>l.remaining),1);
+    const tsw=sk.weightKg?(parseFloat(sk.weightKg)||0)*r.stockQty:null;
+    const layersHtml = r.layers.length ? r.layers.map(l=>{
+      const bd=costBreakdown(l);
+      return`<div class="fifo-layer">
+        <span style="min-width:65px;font-weight:600">${l.remaining} ${sk.unit||'u.'}</span>
+        <div class="fifo-bar" style="width:${Math.round(l.remaining/maxQ*100)}%"></div>
+        <span style="min-width:82px;color:#888">@ ${fmt(bd.total)}/u.</span>
+        <span style="font-size:11px;color:#aaa">FOB ${fmt(bd.fob)} + Giro ${fmt(bd.gyro)} + Flete ${fmt(bd.flete)}</span>
+        ${tsw!==null?`<span style="font-size:11px;color:#aaa;margin-left:6px">${fmtKg((parseFloat(sk.weightKg)||0)*l.remaining)}</span>`:''}
+        <span style="margin-left:auto;font-weight:600">${fmtInt(l.remaining*bd.total)}</span>
+        <span style="font-size:11px;color:#aaa;margin-left:8px">${l.date}</span>
+      </div>`;
+    }).join('') : `<div class="empty" style="padding:12px">Sin stock disponible</div>`;
+    html+=`<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:8px"><span class="sku-code">${sk.code}</span><span style="font-weight:600;font-size:14px">${sk.product}</span></div>
+      <div style="display:flex;gap:14px;font-size:12px;color:#888">
+        <span>Stock: <strong style="color:#1a1a1a">${r.stockQty} ${sk.unit||'u.'}</strong></span>
+        ${tsw!==null?`<span>Peso: <strong style="color:#1a1a1a">${fmtKg(tsw)}</strong></span>`:''}
+        <span>Valor: <strong style="color:#1a1a1a">${fmtInt(r.stockValue)}</strong></span>
+      </div>
+    </div><div class="section-title" style="margin-bottom:6px">Capas FIFO</div>${layersHtml}</div>`;
+  });
+  el.innerHTML = html||`<div class="empty">Sin SKUs activos</div>`;
+}
+
+// ─── RENTABILIDAD ──────────────────────────────────────
+function renderRentabilidad(from='',to=''){
+  const el = document.getElementById('tab-rentabilidad');
+  let fp = purchases, fs = sales;
+  if(from){fp=fp.filter(p=>p.date>=from);fs=fs.filter(s=>s.date>=from);}
+  if(to)  {fp=fp.filter(p=>p.date<=to);  fs=fs.filter(s=>s.date<=to);}
+
+  const data = skus.filter(s=>s.active).map(sk=>{
+    const rev=fs.filter(s=>s.skuId===sk.id).reduce((a,s)=>a+s.qty*s.unitPrice,0);
+    const r=calcFIFO(sk.id,purchases,sales);
+    const cogsFiltered = fs.filter(s=>s.skuId===sk.id).reduce((acc,sale)=>{
+      let tempL=[...purchases.filter(p=>p.skuId===sk.id).sort((a,b)=>a.date.localeCompare(b.date))].map(p=>({...p,remaining:p.qty,uc:unitCost(p)}));
+      sales.filter(s=>s.skuId===sk.id).sort((a,b)=>a.date.localeCompare(b.date)).forEach(s=>{
+        let need=s.qty;
+        for(let l of tempL){if(need<=0)break;let take=Math.min(l.remaining,need);if(s.id===sale.id)acc+=take*l.uc;l.remaining-=take;need-=take;}
+      });
+      return acc;
+    },0);
+    const gross=rev-r.soldCost;
+    const margin=rev>0?gross/rev*100:0;
+    const units=fs.filter(s=>s.skuId===sk.id).reduce((a,s)=>a+s.qty,0);
+    return{sk,rev,cogs:r.soldCost,gross,margin,units};
+  }).filter(d=>d.rev>0||d.units>0);
+
+  const totalRev=data.reduce((a,d)=>a+d.rev,0);
+  const totalGross=data.reduce((a,d)=>a+d.gross,0);
+  const totalMargin=totalRev>0?totalGross/totalRev*100:0;
+
+  const rows=data.map(d=>`<tr>
+    <td style="width:85px"><span class="sku-code">${d.sk.code}</span></td>
+    <td>${d.sk.product}</td>
+    <td style="width:60px;text-align:right">${d.units}</td>
+    <td style="width:95px;text-align:right">${fmtInt(d.rev)}</td>
+    <td style="width:95px;text-align:right">${fmtInt(d.cogs)}</td>
+    <td style="width:95px;text-align:right;font-weight:600">${fmtInt(d.gross)}</td>
+    <td style="width:75px;text-align:center"><span class="badge ${d.margin>=30?'badge-green':d.margin>=10?'badge-blue':'badge-red'}">${pct(d.margin)}</span></td>
+  </tr>`).join('');
+
+  el.innerHTML=`
+<div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:1rem">
+  <input type="date" id="fr-from" value="${from}" onchange="filterRent()">
+  <input type="date" id="fr-to" value="${to}" onchange="filterRent()">
+</div>
+<div class="metrics" style="grid-template-columns:repeat(3,1fr)">
+  <div class="metric"><div class="metric-label">Ingresos totales</div><div class="metric-value">${fmtInt(totalRev)}</div></div>
+  <div class="metric"><div class="metric-label">Ganancia bruta</div><div class="metric-value ${totalGross>=0?'positive':'negative'}">${fmtInt(totalGross)}</div></div>
+  <div class="metric"><div class="metric-label">Margen promedio</div><div class="metric-value">${pct(totalMargin)}</div></div>
+</div>
+<div class="card">
+  <div class="section-title">Rentabilidad por SKU</div>
+  <div style="overflow-x:auto"><table style="min-width:520px">
+    <thead><tr><th>Código</th><th>Producto</th><th style="text-align:right">Unidades</th><th style="text-align:right">Ingresos</th><th style="text-align:right">COGS (FIFO)</th><th style="text-align:right">Ganancia bruta</th><th style="text-align:center">Margen</th></tr></thead>
+    <tbody>${rows||'<tr><td colspan="7" class="empty">Sin datos en el período</td></tr>'}</tbody>
+  </table></div>
+</div>`;
+}
+
+window.filterRent = () => {
+  renderRentabilidad(document.getElementById('fr-from')?.value||'',document.getElementById('fr-to')?.value||'');
+};
+
+// ─── MOVIMIENTOS ──────────────────────────────────────
+async function logMovimiento(tipo, detalle){
+  try {
+    await addDoc(collection(db,'movimientos'),{tipo,detalle,usuario:currentUser?.email||'—',fecha:new Date().toISOString(),createdAt:serverTimestamp()});
+  } catch(e){}
+}
+
+async function renderMovimientos(){
+  const el = document.getElementById('tab-movimientos');
+  el.innerHTML = `<div class="loading">Cargando historial…</div>`;
+  const snap = await getDocs(query(collection(db,'movimientos'),orderBy('createdAt','desc')));
+  const movs = snap.docs.map(d=>({id:d.id,...d.data()}));
+  const rows = movs.length ? movs.map(m=>{
+    const fecha = m.fecha ? new Date(m.fecha).toLocaleString('es-AR') : '—';
+    const badgeClass = m.tipo.includes('eliminad')?'badge-red':m.tipo.includes('Venta')?'badge-blue':m.tipo.includes('Compra')?'badge-green':'badge-gray';
+    return`<tr>
+      <td style="width:145px;color:#888;font-size:11px">${fecha}</td>
+      <td style="width:160px"><span class="badge ${badgeClass}">${m.tipo}</span></td>
+      <td>${m.detalle||'—'}</td>
+      <td style="width:150px;color:#888;font-size:11px">${m.usuario||'—'}</td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="4" class="empty">Sin movimientos registrados</td></tr>`;
+  el.innerHTML=`
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+    <span class="section-title" style="margin-bottom:0">Registro de movimientos</span>
+    <span style="font-size:12px;color:#aaa">${movs.length} registros</span>
+  </div>
+  <div style="overflow-x:auto"><table style="min-width:580px">
+    <thead><tr><th>Fecha y hora</th><th>Tipo</th><th>Detalle</th><th>Usuario</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>
+</div>`;
+}
+
+// Init
+window.renderTab = renderTab;
+</script>
+</body>
+</html>
